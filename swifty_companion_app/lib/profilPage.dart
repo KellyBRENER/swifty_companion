@@ -1,4 +1,3 @@
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 
 class UserProfilePage extends StatelessWidget {
@@ -48,37 +47,52 @@ class _ProfileView extends StatelessWidget {
 
     final projects = _extractProjects(user);
 
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        _HeaderCard(
-          login: login,
-          email: email,
-          wallet: wallet,
-          location: location,
-          level: levelText,
-          imageUrl: imageUrl,
-        ),
-        const SizedBox(height: 16),
+    final mediaSize = MediaQuery.of(context).size;
+    final screenWidth = mediaSize.width;
+    final screenHeight = mediaSize.height;
+    final baseSize = mediaSize.shortestSide;
 
-        // Skills
-        Text('Skills', style: Theme.of(context).textTheme.titleLarge),
-        const SizedBox(height: 8),
-        if (skills.isEmpty)
-          const Text('No skills available.')
-        else
-          ...skills.map((s) => _SkillRow(skill: s, maxLevel: maxLevel)),
-
-        const SizedBox(height: 24),
-
-        // Projects
-        Text('Projects', style: Theme.of(context).textTheme.titleLarge),
-        const SizedBox(height: 8),
-        if (projects.isEmpty)
-          const Text('No projects available.')
-        else
-          ...projects.map((p) => _ProjectRow(project: p)),
-      ],
+    return SafeArea(
+      child: ListView(
+        padding: EdgeInsets.all(screenWidth * 0.04),
+        children: [
+          _HeaderCard(
+            login: login,
+            email: email,
+            wallet: wallet,
+            location: location,
+            level: levelText,
+            imageUrl: imageUrl,
+          ),
+          SizedBox(height: screenHeight * 0.02),
+      
+          // Skills
+          Text('Skills', 
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              fontSize: baseSize * 0.05,
+            ),
+          ),
+          SizedBox(height: screenHeight * 0.01),
+          if (skills.isEmpty)
+            Text('No skills available.', style: TextStyle(fontSize: baseSize * 0.04))
+          else
+            ...skills.map((s) => _SkillRow(skill: s, maxLevel: maxLevel)),
+      
+          SizedBox(height: screenHeight * 0.03),
+      
+          // Projects
+          Text('Projects',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              fontSize: baseSize * 0.05,
+            ),
+          ),
+          SizedBox(height: screenHeight * 0.01),
+          if (projects.isEmpty)
+            Text('No projects available.', style: TextStyle(fontSize: baseSize * 0.04))
+          else
+            ...projects.map((p) => _ProjectRow(project: p)),
+        ],
+      ),
     );
   }
 }
@@ -180,24 +194,29 @@ class _HeaderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final mediaSize = MediaQuery.of(context).size;
+    final screenWidth = mediaSize.width;
+    final screenHeight = mediaSize.height;
+    final baseSize = mediaSize.shortestSide;
+    
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(screenWidth * 0.04),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _Avatar(imageUrl: imageUrl),
-            const SizedBox(width: 12),
+            SizedBox(width: screenWidth * 0.03),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(login, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 6),
-                  Text('Email: $email'),
-                  Text('Level: $level'),
-                  Text('Wallet: $wallet'),
-                  Text('Location: $location'),
+                  Text(login, style: TextStyle(fontSize: baseSize * 0.05, fontWeight: FontWeight.w700)),
+                  SizedBox(height: screenHeight * 0.01),
+                  Text('Email: $email', style: TextStyle(fontSize: baseSize * 0.035)),
+                  Text('Level: $level', style: TextStyle(fontSize: baseSize * 0.035)),
+                  Text('Wallet: $wallet', style: TextStyle(fontSize: baseSize * 0.035)),
+                  Text('Location: $location', style: TextStyle(fontSize: baseSize * 0.035)),
                 ],
               ),
             ),
@@ -215,19 +234,22 @@ class _Avatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final url = imageUrl;
+    final baseSize = MediaQuery.of(context).size.shortestSide;
+    final avatarSize = baseSize * 0.16;
+    
     return ClipRRect(
       borderRadius: BorderRadius.circular(12),
       child: url != null && url.isNotEmpty
           ? Image.network(
               url,
-              width: 72,
-              height: 72,
+              width: avatarSize,
+              height: avatarSize,
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => const SizedBox(
-                width: 72, height: 72, child: Center(child: Icon(Icons.person)),
+              errorBuilder: (_, __, ___) => SizedBox(
+                width: avatarSize, height: avatarSize, child: const Center(child: Icon(Icons.person)),
               ),
             )
-          : const SizedBox(width: 72, height: 72, child: Center(child: Icon(Icons.person))),
+          : SizedBox(width: avatarSize, height: avatarSize, child: const Center(child: Icon(Icons.person))),
     );
   }
 }
@@ -254,6 +276,9 @@ class _SkillRow extends StatelessWidget {
     // Barre “globale” : compare les skills entre eux
     final normalized = (maxLevel <= 0) ? 0.0 : (level / maxLevel).clamp(0.0, 1.0);
 
+    final mediaSize = MediaQuery.of(context).size;
+    final baseSize = mediaSize.shortestSide;
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Column(
@@ -265,19 +290,20 @@ class _SkillRow extends StatelessWidget {
               Expanded(
                 child: Text(
                   name,
-                  style: const TextStyle(fontWeight: FontWeight.w600),
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: baseSize * 0.04),
                 ),
               ),
               Text(
                 'Lv ${level.toStringAsFixed(2)}  •  $percentToNext%',
+                style: TextStyle(fontSize: baseSize * 0.035),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: mediaSize.height * 0.01),
 
           // Barre principale (niveau relatif)
           LinearProgressIndicator(value: normalized),
-          const SizedBox(height: 6),
+          SizedBox(height: mediaSize.height * 0.008),
 
           // Barre secondaire (progression vers le prochain niveau)
           Opacity(
@@ -305,11 +331,13 @@ class _ProjectRow extends StatelessWidget {
     final markText = finalMark == null ? '-' : finalMark.toString();
 
     final label = categorizeProject(project);
+    
+    final baseSize = MediaQuery.of(context).size.shortestSide;
 
     return Card(
       child: ListTile(
-        title: Text(name),
-        subtitle: Text('Status: $status • Mark: $markText'),
+        title: Text(name, style: TextStyle(fontSize: baseSize * 0.04, fontWeight: FontWeight.w600)),
+        subtitle: Text('Status: $status • Mark: $markText', style: TextStyle(fontSize: baseSize * 0.035)),
         trailing: Text(
           switch (label) {
             ProjectCategory.inProgress => 'In Progress',
@@ -318,6 +346,7 @@ class _ProjectRow extends StatelessWidget {
           },
           style: TextStyle(
             fontWeight: FontWeight.w700,
+            fontSize: baseSize * 0.035,
             color: label == ProjectCategory.success ? Colors.green : 
             (label == ProjectCategory.failed ? Colors.red : Colors.blue),
           ),

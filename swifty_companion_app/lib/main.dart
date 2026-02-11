@@ -3,20 +3,32 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:swifty_companion_app/profilPage.dart';
+import 'package:json_theme/json_theme.dart';
+import 'dart:convert';
 
-void main() {
-  runApp(const SwiftyCompanionApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final themeStr = await rootBundle.loadString('assets/theme.json');
+  final themeJson = jsonDecode(themeStr);
+  
+  final ThemeData theme = ThemeDecoder.decodeThemeData(
+    themeJson,
+    validate: true,
+    )!;
+
+  runApp(SwiftyCompanionApp(theme: theme));
 }
 
 class SwiftyCompanionApp extends StatelessWidget {
-  const SwiftyCompanionApp({super.key});
+  const SwiftyCompanionApp({super.key, required this.theme});
 
+  final ThemeData theme;
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Swifty Companion',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(useMaterial3: true),
+      theme: theme,
       home: const BootstrapPage(),
     );
   }
@@ -51,7 +63,7 @@ class _BootstrapPageState extends State<BootstrapPage> {
       // 1) Charger .env (doit être déclaré dans pubspec.yaml en assets)
       await dotenv.load(fileName: '.env');
 
-      final apiBase = dotenv.env['FT_API_BASE'] ?? 'https://api.intra.42.fr';
+      final apiBase = dotenv.env['API42_URL'] ?? 'https://api.intra.42.fr';
 
       // 2) Client réseau
       final dio = Dio(BaseOptions(
@@ -83,29 +95,44 @@ class _BootstrapPageState extends State<BootstrapPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Swifty Companion')),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: _loading
-              ? const CircularProgressIndicator()
-              : _error != null
-                  ? Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'Initialization failed:\n$_error',
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 12),
-                        FilledButton(
-                          onPressed: _bootstrap,
-                          child: const Text('Retry'),
-                        ),
-                      ],
-                    )
-                  : const Text('Ready'),
+    final mediaSize = MediaQuery.of(context).size;
+    final screenWidth = mediaSize.width;
+    final screenHeight = mediaSize.height;
+    final baseSize = mediaSize.shortestSide;
+    
+    return SafeArea(
+      child: Scaffold(
+        appBar: AppBar(title: const Text('Swifty Companion')),
+        body: Center(
+          child: Padding(
+            padding: EdgeInsets.all(screenWidth * 0.04),
+            child: _loading
+                ? const CircularProgressIndicator()
+                : _error != null
+                    ? Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Initialization failed:\n$_error',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontSize: screenWidth * 0.04),
+                          ),
+                          SizedBox(height: screenHeight * 0.02),
+                          SizedBox(
+                            width: screenWidth * 0.6,
+                            height: screenHeight * 0.06,
+                            child: FilledButton(
+                              onPressed: _bootstrap,
+                              child: Text(
+                                'Retry',
+                                style: TextStyle(fontSize: screenWidth * 0.04),
+                              ),
+                            ),
+                          ),
+                        ],
+                      )
+                    : const Text('Ready'),
+          ),
         ),
       ),
     );
@@ -195,41 +222,57 @@ class _LoginSearchPageState extends State<LoginSearchPage> {
 
   @override
   Widget build(BuildContext context) {
+    final mediaSize = MediaQuery.of(context).size;
+    final screenWidth = mediaSize.width;
+    final screenHeight = mediaSize.height;
+    final baseSize = mediaSize.shortestSide;
+    
     return Scaffold(
       appBar: AppBar(title: const Text('Swifty Companion')),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            TextField(
-              controller: _controller,
-              textInputAction: TextInputAction.search,
-              onSubmitted: (_) => _search(),
-              maxLength: 8,
-              inputFormatters: [
-                LengthLimitingTextInputFormatter(8),
-              ],
-              decoration: InputDecoration(
-                labelText: '42 login',
-                hintText: 'e.g. jdupont',
-                border: const OutlineInputBorder(),
-                errorText: _error,
-                counterText: '',
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.all(screenWidth * 0.04),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              TextField(
+                controller: _controller,
+                textInputAction: TextInputAction.search,
+                onSubmitted: (_) => _search(),
+                maxLength: 8,
+                inputFormatters: [
+                  LengthLimitingTextInputFormatter(8),
+                ],
+                style: TextStyle(fontSize: baseSize * 0.045),
+                decoration: InputDecoration(
+                  labelText: '42 login',
+                  hintText: 'e.g. jdupont',
+                  border: const OutlineInputBorder(),
+                  errorText: _error,
+                  counterText: '',
+                  labelStyle: TextStyle(fontSize: baseSize * 0.04),
+                  hintStyle: TextStyle(fontSize: baseSize * 0.04),
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
-            FilledButton(
-              onPressed: _loading ? null : _search,
-              child: _loading
-                  ? const SizedBox(
-                      height: 18,
-                      width: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text('Search'),
-            ),
-          ],
+              SizedBox(height: screenHeight * 0.02),
+              SizedBox(
+                height: screenHeight * 0.06,
+                child: FilledButton(
+                  onPressed: _loading ? null : _search,
+                  child: _loading
+                      ? const SizedBox(
+                          height: 18,
+                          width: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Text(
+                          'Search',
+                          style: TextStyle(fontSize: baseSize * 0.045),
+                        ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -274,6 +317,9 @@ class AuthService {
         clientSecret == null ||
         clientSecret.isEmpty) {
       throw Exception('Missing CLIENT_ID / CLIENT_SECRET in .env');
+    } else {
+      debugPrint("CLIENT_ID len=${(dotenv.env['CLIENT_ID'] ?? '').length}");
+      debugPrint("CLIENT_SECRET len=${(dotenv.env['CLIENT_SECRET'] ?? '').length}");
     }
 
     final res = await dio.post(
