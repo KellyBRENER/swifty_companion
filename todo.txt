@@ -1,5 +1,2 @@
-- représenter le level avec des étoiles et le reste en pourcentage en barre.
-- mettre les deux pages dans une safe area
 - vérifier les networks erreurs
-- vérifier que l'affichage est responsive
 - vérifier qu'on ne génère pas un token à chaque requète

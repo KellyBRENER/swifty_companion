@@ -301,8 +301,20 @@ class _SkillRow extends StatelessWidget {
           ),
           SizedBox(height: mediaSize.height * 0.01),
 
-          // Barre principale (niveau relatif)
-          LinearProgressIndicator(value: normalized),
+          // Étoiles pour le niveau
+          Row(
+            children: List.generate(
+              maxLevel.toInt(),
+              (index) => Padding(
+                padding: const EdgeInsets.only(right: 4),
+                child: Icon(
+                  index < level.toInt() ? Icons.star : Icons.star_outline,
+                  color: Colors.amber,
+                  size: baseSize * 0.05,
+                ),
+              ),
+            ),
+          ),
           SizedBox(height: mediaSize.height * 0.008),
 
           // Barre secondaire (progression vers le prochain niveau)

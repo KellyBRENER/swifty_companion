@@ -60,7 +60,7 @@ class _BootstrapPageState extends State<BootstrapPage> {
     });
 
     try {
-      // 1) Charger .env (doit être déclaré dans pubspec.yaml en assets)
+      // 1) Charger .env pour récupérer client_id et client_secret
       await dotenv.load(fileName: '.env');
 
       final apiBase = dotenv.env['API42_URL'] ?? 'https://api.intra.42.fr';
@@ -76,7 +76,7 @@ class _BootstrapPageState extends State<BootstrapPage> {
       final auth = AuthService(dio: dio);
       await auth.ensureValidToken();
 
-      // 4) Interceptor : injecte Authorization + retry 401
+      // 4) Interceptor : crée un interceptor qui ajoute le token à chaque requête, et gère le refresh automatique
       dio.interceptors.add(AuthInterceptor(authService: auth, dio: dio));
 
       if (!mounted) return;
@@ -98,7 +98,6 @@ class _BootstrapPageState extends State<BootstrapPage> {
     final mediaSize = MediaQuery.of(context).size;
     final screenWidth = mediaSize.width;
     final screenHeight = mediaSize.height;
-    final baseSize = mediaSize.shortestSide;
     
     return SafeArea(
       child: Scaffold(
@@ -284,6 +283,7 @@ class AuthService {
 
   String? _accessToken;
   DateTime? _expiresAt;
+  int _refreshingCount = 0; // compteur de refresh en cours
 
   Future<void>? _refreshing; // verrou correct (nullable)
 
@@ -318,6 +318,8 @@ class AuthService {
         clientSecret.isEmpty) {
       throw Exception('Missing CLIENT_ID / CLIENT_SECRET in .env');
     } else {
+      _refreshingCount++;
+      debugPrint('[AUTH] : Fetching new token... (refresh count: $_refreshingCount)');
       debugPrint("CLIENT_ID len=${(dotenv.env['CLIENT_ID'] ?? '').length}");
       debugPrint("CLIENT_SECRET len=${(dotenv.env['CLIENT_SECRET'] ?? '').length}");
     }
@@ -355,11 +357,16 @@ class AuthService {
 class AuthInterceptor extends Interceptor {
   final AuthService authService;
   final Dio dio;
+  int _requestsCount = 0; // compteur de requêtes totales (pour debug)
+
 
   AuthInterceptor({required this.authService, required this.dio});
 
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) async {
+    _requestsCount++;
+    debugPrint("[HTTP] : Request #$_requestsCount");
+    debugPrint("[AUTH] : Number of refresh = ${authService._refreshingCount}");
     try {
       await authService.ensureValidToken();
       final token = authService.accessToken;
