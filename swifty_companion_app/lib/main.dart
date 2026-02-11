@@ -83,7 +83,7 @@ class _BootstrapPageState extends State<BootstrapPage> {
 
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
-          builder: (_) => LoginSearchPage(dio: dio),
+          builder: (_) => LoginSearchPage(dio: dio, authService: auth),
         ),
       );
     } catch (e) {
@@ -140,10 +140,12 @@ class _BootstrapPageState extends State<BootstrapPage> {
 
 class LoginSearchPage extends StatefulWidget {
   final Dio dio;
+  final AuthService authService;
 
   const LoginSearchPage({
     super.key,
     required this.dio,
+    required this.authService,
   });
 
   @override
@@ -268,6 +270,17 @@ class _LoginSearchPageState extends State<LoginSearchPage> {
                           'Search',
                           style: TextStyle(fontSize: baseSize * 0.045),
                         ),
+                ),
+              ),              SizedBox(height: screenHeight * 0.02),
+              SizedBox(
+                height: screenHeight * 0.06,
+                child: OutlinedButton.icon(
+                  onPressed: () => widget.authService.forceRefreshToken(),
+                  icon: const Icon(Icons.refresh),
+                  label: Text(
+                    'Refresh Token',
+                    style: TextStyle(fontSize: baseSize * 0.04),
+                  ),
                 ),
               ),
             ],
