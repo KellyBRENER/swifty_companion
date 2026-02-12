@@ -1,3 +1,5 @@
+import 'dart:ffi';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -114,7 +116,7 @@ class _BootstrapPageState extends State<BootstrapPage> {
                           Text(
                             'Initialization failed:\n$_error',
                             textAlign: TextAlign.center,
-                            style: TextStyle(fontSize: screenWidth * 0.04),
+                            //style: TextStyle(fontSize: screenWidth * 0.04),
                           ),
                           SizedBox(height: screenHeight * 0.02),
                           SizedBox(
@@ -124,7 +126,7 @@ class _BootstrapPageState extends State<BootstrapPage> {
                               onPressed: _bootstrap,
                               child: Text(
                                 'Retry',
-                                style: TextStyle(fontSize: screenWidth * 0.04),
+                                //style: TextStyle(fontSize: screenWidth * 0.04),
                               ),
                             ),
                           ),
@@ -220,6 +222,23 @@ class _LoginSearchPageState extends State<LoginSearchPage> {
   }
 }
 
+String _mapDioError(DioException e) {
+  // Pas de réseau / DNS / mode avion
+  if (e.type == DioExceptionType.connectionError) {
+    return 'No internet connection (DNS/host lookup failed).';
+  }
+  if (e.type == DioExceptionType.connectionTimeout) {
+    return 'Connection timeout.';
+  }
+  if (e.type == DioExceptionType.receiveTimeout) {
+    return 'Receive timeout.';
+  }
+  final code = e.response?.statusCode;
+  if (code != null) return 'HTTP $code error.';
+  return 'Network error.';
+}
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -257,7 +276,7 @@ class _LoginSearchPageState extends State<LoginSearchPage> {
               ),
               SizedBox(height: screenHeight * 0.02),
               SizedBox(
-                height: screenHeight * 0.06,
+                height: 50,
                 child: FilledButton(
                   onPressed: _loading ? null : _search,
                   child: _loading
@@ -271,23 +290,59 @@ class _LoginSearchPageState extends State<LoginSearchPage> {
                           style: TextStyle(fontSize: baseSize * 0.045),
                         ),
                 ),
-              ),              SizedBox(height: screenHeight * 0.02),
+              ),
+              SizedBox(height: screenHeight * 0.02),
               SizedBox(
-                height: screenHeight * 0.06,
+                height: 50,
                 child: OutlinedButton.icon(
-                  onPressed: () => widget.authService.forceRefreshToken(),
+                  onPressed: _loading
+    ? null
+    : () async {
+        setState(() {
+          _loading = true;
+          _error = null;
+        });
+
+        try {
+          await widget.authService.forceRefreshToken();
+          if (!mounted) return;
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Token refreshed')),
+          );
+        } on DioException catch (e) {
+          if (!mounted) return;
+
+          setState(() {
+            _error = _mapDioError(e);
+          });
+        } catch (e) {
+          if (!mounted) return;
+          setState(() => _error = 'Unexpected error: $e');
+        } finally {
+          if (mounted) setState(() => _loading = false);
+        }
+      },
+
                   icon: const Icon(Icons.refresh),
                   label: Text(
-                    'Refresh Token',
+                    'Force Refresh Token',
                     style: TextStyle(fontSize: baseSize * 0.04),
                   ),
                 ),
               ),
-            ],
-          ),
-        ),
-      ),
-    );
+              SizedBox(height: screenHeight * 0.02),
+              SizedBox(
+                height: 50,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    widget.authService.setExpirationTo10SecFromNow();
+                  },
+                  icon: const Icon(Icons.refresh),
+                  label: Text(
+                    'Set Expiration Date To 10sec From Now',
+                    style: TextStyle(fontSize: baseSize * 0.04),
+), ), ), ], ), ), ), );
   }
 }
 
@@ -303,6 +358,10 @@ class AuthService {
   AuthService({required this.dio});
 
   String? get accessToken => _accessToken;
+
+  void  setExpirationTo10SecFromNow() {
+    _expiresAt = DateTime.now().add(const Duration(seconds: 10));
+  }
 
   bool get _tokenValid {
     if (_accessToken == null || _expiresAt == null) return false;
@@ -377,6 +436,10 @@ class AuthInterceptor extends Interceptor {
 
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) async {
+    if (options.path == '/oauth/token') {
+      options.headers['Accept'] = 'application/json';
+      return handler.next(options);
+    }
     _requestsCount++;
     debugPrint("[HTTP] : Request #$_requestsCount");
     debugPrint("[AUTH] : Number of refresh = ${authService._refreshingCount}");

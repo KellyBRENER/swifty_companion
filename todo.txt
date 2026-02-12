@@ -1,2 +1,1 @@
 - vérifier les networks erreurs
-- vérifier qu'on ne génère pas un token à chaque requète
