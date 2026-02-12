@@ -302,7 +302,9 @@ class _SkillRow extends StatelessWidget {
           SizedBox(height: mediaSize.height * 0.01),
 
           // Étoiles pour le niveau
-          Row(
+          Wrap(
+            spacing: 4,
+            runSpacing: 4,
             children: List.generate(
               maxLevel.toInt(),
               (index) => Padding(
